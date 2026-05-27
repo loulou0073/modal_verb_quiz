@@ -1,0 +1,256 @@
+
+<style>
+  .quiz-wrap { padding: 1rem 0; font-family: var(--font-sans); }
+  .quiz-header { margin-bottom: 1.5rem; }
+  .progress-bar-bg { background: var(--color-background-secondary); border-radius: 99px; height: 8px; margin-top: 8px; }
+  .progress-bar-fill { background: #185FA5; border-radius: 99px; height: 8px; transition: width 0.4s; }
+  .q-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .q-num { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .q-situation { background: var(--color-background-secondary); border-left: 3px solid #185FA5; border-radius: 0; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; }
+  .q-text { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 14px; line-height: 1.6; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opt-btn { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; font-size: 13px; color: var(--color-text-primary); cursor: pointer; text-align: left; transition: background 0.15s, border-color 0.15s; line-height: 1.4; }
+  .opt-btn:hover:not(:disabled) { background: var(--color-background-secondary); border-color: #185FA5; }
+  .opt-btn.correct { background: #EAF3DE; border: 1.5px solid #3B6D11; color: #27500A; }
+  .opt-btn.wrong { background: #FCEBEB; border: 1.5px solid #A32D2D; color: #501313; }
+  .opt-btn.reveal { background: #EAF3DE; border: 1.5px solid #3B6D11; color: #27500A; opacity: 0.7; }
+  .opt-btn:disabled { cursor: default; }
+  .next-btn { margin-top: 12px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 20px; font-size: 14px; color: var(--color-text-primary); cursor: pointer; display: none; }
+  .next-btn.show { display: inline-block; }
+  .next-btn:hover { background: var(--color-background-secondary); }
+  .score-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; text-align: center; display: none; }
+  .score-big { font-size: 48px; font-weight: 500; color: #185FA5; }
+  .score-label { font-size: 15px; color: var(--color-text-secondary); margin-top: 4px; }
+  .restart-btn { margin-top: 1.5rem; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 10px 24px; font-size: 14px; cursor: pointer; color: var(--color-text-primary); }
+  .restart-btn:hover { background: var(--color-background-secondary); }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
+  .tag-must { background: #FAECE7; color: #993C1D; }
+  .tag-have { background: #E6F1FB; color: #185FA5; }
+  .tag-should { background: #E1F5EE; color: #0F6E56; }
+  .tag-need { background: #EEEDFE; color: #534AB7; }
+  .result-icon { font-size: 22px; margin-top: 10px; display: none; }
+  .result-icon.show { display: block; }
+</style>
+
+<div class="quiz-wrap" role="main">
+  <h2 class="sr-only">조동사 퀴즈</h2>
+  <div class="quiz-header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:15px; font-weight:500; color:var(--color-text-primary);">조동사 퀴즈</span>
+      <span id="q-counter" style="font-size:13px; color:var(--color-text-secondary);">1 / 10</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog" style="width:10%"></div></div>
+  </div>
+
+  <div id="quiz-area"></div>
+  <div class="score-card" id="score-card">
+    <div class="score-big" id="score-val"></div>
+    <div class="score-label">10문제 중 정답</div>
+    <div id="score-msg" style="font-size:14px; color:var(--color-text-secondary); margin-top:12px; line-height:1.7;"></div>
+    <button class="restart-btn" onclick="startQuiz()">다시 풀기 ↺</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    tag: "must", tagClass: "tag-must",
+    situation: "친구가 도서관에서 큰 소리로 전화 통화를 하려고 합니다. 강하게 금지해야 합니다.",
+    text: "상황에 가장 적절한 표현은?",
+    options: [
+      "You should not talk on the phone here.",
+      "You must not talk on the phone here.",
+      "You don't have to talk on the phone here.",
+      "You need not to talk on the phone here."
+    ],
+    answer: 1
+  },
+  {
+    tag: "don't have to", tagClass: "tag-have",
+    situation: "내일은 토요일이라 학교에 가지 않아도 됩니다. 의무가 없음을 말하고 싶습니다.",
+    text: "상황에 가장 적절한 표현은?",
+    options: [
+      "You must not go to school tomorrow.",
+      "You should not go to school tomorrow.",
+      "You don't have to go to school tomorrow.",
+      "You can't go to school tomorrow."
+    ],
+    answer: 2
+  },
+  {
+    tag: "should", tagClass: "tag-should",
+    situation: "친구가 요즘 건강이 좋지 않다고 합니다. 조언을 해주고 싶습니다.",
+    text: "상황에 가장 적절한 표현은?",
+    options: [
+      "You must see a doctor.",
+      "You should see a doctor.",
+      "You have to see a doctor.",
+      "You need to see a doctor or not."
+    ],
+    answer: 1
+  },
+  {
+    tag: "need to", tagClass: "tag-need",
+    situation: "엄마가 걱정하고 있습니다. 걱정할 필요가 없다고 말하고 싶습니다.",
+    text: "빈칸에 알맞은 표현은?\n\"She ______ worry. Everything is fine.\"",
+    options: [
+      "must not",
+      "should not",
+      "doesn't need to",
+      "don't have to"
+    ],
+    answer: 2
+  },
+  {
+    tag: "must", tagClass: "tag-must",
+    situation: "학교 규칙입니다. 모든 학생은 반드시 교복을 입어야 합니다. (강한 의무)",
+    text: "상황에 가장 적절한 표현은?",
+    options: [
+      "All students should wear a uniform.",
+      "All students don't have to wear a uniform.",
+      "All students must wear a uniform.",
+      "All students need not to wear a uniform."
+    ],
+    answer: 2
+  },
+  {
+    tag: "should not", tagClass: "tag-should",
+    situation: "친구가 시험 전날 밤새 게임을 하려 합니다. 하지 않는 게 좋겠다고 말하고 싶습니다.",
+    text: "상황에 가장 적절한 표현은?",
+    options: [
+      "You must not play games tonight.",
+      "You don't have to play games tonight.",
+      "You shouldn't play games tonight.",
+      "You can't play games tonight."
+    ],
+    answer: 2
+  },
+  {
+    tag: "need to", tagClass: "tag-need",
+    situation: "친구에게 물어보고 싶습니다: \"그는 병원에 가야 하니?\"",
+    text: "빈칸에 알맞은 표현은?\n\"______ he ______ see a doctor?\"",
+    options: [
+      "Must / to",
+      "Does / need to",
+      "Should / to",
+      "Is / need to"
+    ],
+    answer: 1
+  },
+  {
+    tag: "have to", tagClass: "tag-have",
+    situation: "선생님께서 숙제를 오늘 제출하지 않아도 된다고 하셨습니다.",
+    text: "선생님의 말로 가장 적절한 표현은?",
+    options: [
+      "You must not submit the homework today.",
+      "You should not submit the homework today.",
+      "You don't have to submit the homework today.",
+      "You need not submit the homework today."
+    ],
+    answer: 2
+  },
+  {
+    tag: "must not vs don't have to", tagClass: "tag-must",
+    situation: "두 문장의 의미 차이를 파악하는 문제입니다.",
+    text: "다음 중 의미가 나머지와 다른 하나는?",
+    options: [
+      "You don't have to bring your ID.",
+      "You don't need to bring your ID.",
+      "It's not necessary to bring your ID.",
+      "You must not bring your ID."
+    ],
+    answer: 3
+  },
+  {
+    tag: "should / must / have to", tagClass: "tag-should",
+    situation: "세 표현의 강도 차이를 이해하는 문제입니다. 가장 약한 조언부터 가장 강한 의무 순서로 나열하면?",
+    text: "강도가 약한 것부터 강한 순서로 올바르게 나열한 것은?",
+    options: [
+      "must → have to → should",
+      "should → have to → must",
+      "have to → should → must",
+      "should → must → have to"
+    ],
+    answer: 1
+  }
+];
+
+let current = 0, score = 0, answered = false;
+
+function startQuiz() {
+  current = 0; score = 0; answered = false;
+  document.getElementById('score-card').style.display = 'none';
+  document.getElementById('quiz-area').style.display = 'block';
+  renderQ();
+}
+
+function renderQ() {
+  const q = questions[current];
+  document.getElementById('q-counter').textContent = `${current+1} / 10`;
+  document.getElementById('prog').style.width = `${(current+1)*10}%`;
+  answered = false;
+
+  const optHtml = q.options.map((o, i) =>
+    `<button class="opt-btn" onclick="choose(${i})">${o}</button>`
+  ).join('');
+
+  document.getElementById('quiz-area').innerHTML = `
+    <div class="q-card">
+      <div class="q-num">문제 ${current+1}</div>
+      <span class="tag ${q.tagClass}">${q.tag}</span>
+      <div class="q-situation">${q.situation}</div>
+      <div class="q-text">${q.text.replace(/\n/g,'<br>')}</div>
+      <div class="options">${optHtml}</div>
+      <div class="result-icon" id="result-icon"></div>
+      <button class="next-btn" id="next-btn" onclick="nextQ()">${current < 9 ? '다음 문제 →' : '결과 보기 →'}</button>
+    </div>
+  `;
+}
+
+function choose(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[current];
+  const btns = document.querySelectorAll('.opt-btn');
+  const icon = document.getElementById('result-icon');
+  const nb = document.getElementById('next-btn');
+
+  btns.forEach((b, idx) => {
+    b.disabled = true;
+    if (idx === q.answer) b.classList.add(i === q.answer ? 'correct' : 'reveal');
+    else if (idx === i) b.classList.add('wrong');
+  });
+
+  if (i === q.answer) {
+    score++;
+    icon.textContent = '✓ 정답입니다!';
+    icon.style.color = '#27500A';
+  } else {
+    icon.textContent = '✗ 틀렸습니다.';
+    icon.style.color = '#501313';
+  }
+  icon.classList.add('show');
+  nb.classList.add('show');
+}
+
+function nextQ() {
+  current++;
+  if (current >= questions.length) showScore();
+  else renderQ();
+}
+
+function showScore() {
+  document.getElementById('quiz-area').style.display = 'none';
+  const sc = document.getElementById('score-card');
+  sc.style.display = 'block';
+  document.getElementById('score-val').textContent = `${score} / 10`;
+  let msg = '';
+  if (score === 10) msg = '완벽해요! 모든 조동사의 뉘앙스를 정확히 이해하고 있습니다.';
+  else if (score >= 8) msg = '잘했어요! 헷갈리는 부분을 다시 확인해 보세요.';
+  else if (score >= 6) msg = '조금 더 연습이 필요해요. 각 조동사의 강도 차이와 부정문 의미를 다시 복습해 보세요.';
+  else msg = '표를 다시 보면서 have to / must / should / need to의 긍정·부정 의미를 정리해 보세요!';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+startQuiz();
+</script>
